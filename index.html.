@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>INTUTUNAI BOOGIAN TINAN</title>
+<style>
+:root{--cyan:#67e8f9;--blue:#2563eb;--ink:#102033;--glass:rgba(8,20,36,.78)}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:Arial,Helvetica,sans-serif;background:#07111f;color:#fff}
+#camera{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1);z-index:0;background:#101827}
+#shade{position:fixed;inset:0;z-index:1;background:linear-gradient(180deg,rgba(3,10,24,.58),rgba(3,10,24,.18) 45%,rgba(3,10,24,.68));pointer-events:none}
+#pointerCanvas{position:fixed;inset:0;width:100%;height:100%;z-index:8;pointer-events:none}
+#app{position:relative;z-index:3;height:100%;width:100%;display:flex;flex-direction:column;padding:14px 18px;gap:10px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:58px}
+.brand{font-weight:900;font-size:clamp(18px,3vw,30px);letter-spacing:1.5px;text-shadow:0 3px 12px #000}
+.brand small{display:block;font-size:11px;letter-spacing:2px;color:var(--cyan);margin-top:3px}
+.stats{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.stat{background:var(--glass);border:1px solid rgba(255,255,255,.2);border-radius:12px;padding:8px 13px;min-width:82px;text-align:center;backdrop-filter:blur(8px)}
+.stat b{display:block;font-size:18px;color:var(--cyan)}.stat span{font-size:10px;letter-spacing:1px;color:#dbeafe}
+#status{font-size:12px;color:#e0f2fe;background:rgba(0,0,0,.42);padding:6px 10px;border-radius:9px;align-self:center;text-align:center}
+main{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;gap:clamp(12px,3vw,36px)}
+#stage{height:min(72vh,680px);width:min(43vw,430px);min-width:270px;position:relative;display:flex;align-items:center;justify-content:center}
+#person{height:100%;width:100%;overflow:visible;filter:drop-shadow(0 12px 20px rgba(0,0,0,.45))}
+.part{fill:#ffd5a6;stroke:#24364b;stroke-width:5;stroke-linejoin:round}
+.clothes{fill:#55b7e8;stroke:#24364b;stroke-width:5;stroke-linejoin:round}
+.pants{fill:#435b9c;stroke:#24364b;stroke-width:5;stroke-linejoin:round}
+.shoe{fill:#fff;stroke:#24364b;stroke-width:5}
+.faceDetail{fill:none;stroke:#24364b;stroke-width:4;stroke-linecap:round}
+.target{filter:drop-shadow(0 0 9px #fff);stroke:#fef08a!important;stroke-width:9!important;animation:pulse .8s infinite alternate}
+@keyframes pulse{to{filter:drop-shadow(0 0 17px #facc15)}}
+#targetTag{position:absolute;top:5px;left:50%;transform:translateX(-50%);padding:7px 12px;border-radius:20px;background:#facc15;color:#182033;font-weight:900;font-size:12px;letter-spacing:1px;white-space:nowrap}
+#side{width:min(38vw,420px);display:flex;flex-direction:column;gap:14px;align-items:stretch}
+#instruction{background:var(--glass);border:1px solid rgba(255,255,255,.2);padding:14px;border-radius:15px;text-align:center;backdrop-filter:blur(8px)}
+#instruction strong{display:block;color:#fde68a;font-size:clamp(17px,2vw,24px);margin-bottom:5px}
+#instruction span{font-size:13px;color:#e0f2fe}
+#choices{display:grid;grid-template-columns:1fr;gap:10px}
+.choice{position:relative;background:rgba(255,255,255,.94);color:#14243a;border:3px solid transparent;border-radius:14px;padding:13px 15px;text-align:center;font-weight:900;font-size:clamp(16px,2vw,22px);letter-spacing:1px;box-shadow:0 5px 0 rgba(0,0,0,.28);min-height:54px;transition:.12s}
+.choice.hover{border-color:#facc15;transform:scale(1.025);box-shadow:0 0 18px #facc15}
+.choice.grabbed{opacity:.35}
+#placed{font-size:13px;color:#bbf7d0;text-align:center;min-height:18px}
+footer{display:flex;justify-content:center;align-items:center;gap:10px;min-height:48px}
+button{border:0;border-radius:12px;padding:12px 20px;font-weight:900;letter-spacing:.7px;cursor:pointer;background:#facc15;color:#142033;box-shadow:0 4px 0 #a16207}
+button:disabled{opacity:.45;cursor:not-allowed}
+#overlay{position:fixed;inset:0;z-index:20;background:rgba(2,8,23,.88);display:flex;align-items:center;justify-content:center;padding:20px}
+.panel{width:min(520px,95vw);background:#10233d;border:1px solid rgba(103,232,249,.45);border-radius:22px;padding:28px;text-align:center;box-shadow:0 20px 70px #000}
+.panel h1{font-size:clamp(26px,5vw,42px);margin:0 0 10px;color:var(--cyan)}
+.panel p{line-height:1.5;color:#e2e8f0}
+.panel button{margin-top:12px}
+#message{min-height:22px;color:#fde68a;font-weight:700;font-size:13px}
+#dragLabel{position:fixed;z-index:10;display:none;transform:translate(-50%,-120%);pointer-events:none;background:#facc15;color:#142033;padding:8px 13px;border-radius:10px;font-weight:900;box-shadow:0 0 18px #facc15}
+.hidden{display:none!important}
+@media(max-width:700px){
+ #app{padding:8px;gap:5px}header{min-height:50px}.stat{padding:6px 8px;min-width:62px}.stat b{font-size:15px}
+ main{gap:5px}#stage{width:48vw;min-width:0;height:64vh}#side{width:48vw;gap:8px}
+ .choice{padding:10px 5px;min-height:46px;font-size:14px}#instruction{padding:9px}#instruction span{font-size:11px}
+ #targetTag{font-size:9px;padding:5px 8px}
+}
+</style>
+</head>
+<body>
+<video id="camera" autoplay playsinline muted></video><div id="shade"></div>
+<canvas id="pointerCanvas"></canvas>
+<div id="app">
+ <header>
+  <div class="brand">INTUTUNAI BOOGIAN TINAN<small>WINONSOI DI: MONGINGIA BRADLER</small></div>
+  <div class="stats">
+   <div class="stat"><b id="score">0</b><span>MARAKA</span></div>
+   <div class="stat"><b id="combo">0</b><span>KASARU OTOPOT</span></div>
+   <div class="stat"><b id="progress">0/9</b><span>PONGUHATAN</span></div>
+  </div>
+ </header>
+ <div id="status">Camera belum diaktifkan.</div>
+ <main>
+  <section id="stage">
+   <div id="targetTag">TARGET LOCK</div>
+   <svg id="person" viewBox="0 0 400 650" role="img" aria-label="Cartoon human body">
+    <!-- Head, face, ears, neck -->
+    <ellipse id="ears" class="part" cx="200" cy="102" rx="73" ry="84"/>
+    <ellipse class="part" cx="121" cy="110" rx="17" ry="27"/>
+    <ellipse class="part" cx="279" cy="110" rx="17" ry="27"/>
+    <path id="head" class="part" d="M132 92 Q132 18 200 18 Q268 18 268 92 L260 145 Q250 183 200 187 Q150 183 140 145Z"/>
+    <path class="faceDetail" d="M166 105 Q176 96 186 105 M214 105 Q224 96 234 105"/>
+    <circle id="eyes" cx="177" cy="110" r="7" fill="#24364b"/><circle cx="223" cy="110" r="7" fill="#24364b"/>
+    <path id="nose" class="faceDetail" d="M200 116 L193 137 Q200 143 207 137"/>
+    <path id="mouth" class="faceDetail" d="M179 153 Q200 169 221 153"/>
+    <rect class="part" x="174" y="178" width="52" height="42" rx="15"/>
+    <!-- torso and shoulders -->
+    <path id="shoulders" class="clothes" d="M145 207 Q160 194 178 198 L222 198 Q240 194 255 207 L288 225 L269 280 L250 267 L250 390 L150 390 L150 267 L131 280 L112 225Z"/>
+    <!-- arms and hands -->
+    <path class="part" d="M128 230 Q108 230 101 253 L76 365 Q70 386 88 392 Q106 397 113 377 L151 278Z"/>
+    <path class="part" d="M272 230 Q292 230 299 253 L324 365 Q330 386 312 392 Q294 397 287 377 L249 278Z"/>
+    <path id="hands" class="part" d="M74 371 Q58 372 58 392 L62 423 Q65 440 78 438 L83 424 Q91 443 102 433 L105 416 Q117 431 125 418 L120 390 Q113 372 98 377Z"/>
+    <path class="part" d="M326 371 Q342 372 342 392 L338 423 Q335 440 322 438 L317 424 Q309 443 298 433 L295 416 Q283 431 275 418 L280 390 Q287 372 302 377Z"/>
+    <!-- legs, knees, feet -->
+    <path class="pants" d="M150 375 L250 375 L244 505 L218 526 L182 526 L156 505Z"/>
+    <path id="knees" class="part" d="M155 475 Q175 460 198 478 L200 515 Q178 531 156 514Z M202 478 Q225 460 245 475 L244 514 Q222 531 200 515Z"/>
+    <path class="part" d="M158 505 L198 505 L194 586 L159 586Z"/>
+    <path class="part" d="M202 505 L242 505 L241 586 L206 586Z"/>
+    <path id="feet" class="shoe" d="M159 574 Q176 581 194 574 L198 612 Q195 630 171 630 L133 625 Q123 619 137 603Z M206 574 Q224 581 241 574 L263 603 Q277 619 267 625 L229 630 Q205 630 202 612Z"/>
+   </svg>
+  </section>
+  <section id="side">
+   <div id="instruction"><strong id="questionTitle">UKABAI KAMERA</strong><span id="questionHint">Ambil perkataan dengan menahan jari 0.6 saat, kemudian drop pada bahagian yang diserlahkan.</span></div>
+   <div id="choices"></div>
+   <div id="placed"></div>
+  </section>
+ </main>
+ <footer><button id="startBtn">UKABAI KAMERA</button><button id="nextBtn" class="hidden">NEXT QUESTION</button></footer>
+</div>
+<div id="dragLabel"></div>
+<div id="overlay">
+ <div class="panel">
+  <h1>INTUTUNAI BOOGIAN TINAN</h1>
+  <p><br></p>
+  <div id="message">Todoso</div>
+  <button id="overlayStart">UKABAI KAMERA</button>
+ </div>
+</div>
+<script type="module">
+import { FilesetResolver, HandLandmarker } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
+
+const video=document.getElementById('camera');
+const canvas=document.getElementById('pointerCanvas');
+const ctx=canvas.getContext('2d');
+const statusEl=document.getElementById('status');
+const startBtn=document.getElementById('startBtn');
+const overlay=document.getElementById('overlay');
+const overlayStart=document.getElementById('overlayStart');
+const message=document.getElementById('message');
+const dragLabel=document.getElementById('dragLabel');
+const choicesEl=document.getElementById('choices');
+const questionTitle=document.getElementById('questionTitle');
+const questionHint=document.getElementById('questionHint');
+const scoreEl=document.getElementById('score');
+const comboEl=document.getElementById('combo');
+const progressEl=document.getElementById('progress');
+const placedEl=document.getElementById('placed');
+const nextBtn=document.getElementById('nextBtn');
+const targetTag=document.getElementById('targetTag');
+
+const questions=[
+ {word:'TULU',translation:'Kepala',target:'head',wrong:['TODUNG','TOTUD']},
+ {word:'LIHAWA',translation:'Bahu',target:'shoulders',wrong:['LONGON','HAKOD']},
+ {word:'LONGON',translation:'Tangan',target:'hands',wrong:['TOLINGO','TOTUD']},
+ {word:'TOTUD',translation:'Lutut',target:'knees',wrong:['LIHAWA','MATO']},
+ {word:'HAKOD',translation:'Kaki',target:'feet',wrong:['LONGON','KABANG']},
+ {word:'MATO',translation:'Mata',target:'eyes',wrong:['TOLINGO','TODUNG']},
+ {word:'TOLINGO',translation:'Telinga',target:'ears',wrong:['MATO','KABANG']},
+ {word:'KABANG',translation:'Mulut',target:'mouth',wrong:['TODUNG','TULU']},
+ {word:'TODUNG',translation:'Hidung',target:'nose',wrong:['MATO','TOLINGO']}
+];
+let handLandmarker=null,stream=null,rafId=null,lastVideoTime=-1;
+let active=false,questionIndex=0,score=0,combo=0,correctCount=0,wrongCount=0;
+let pointer={x:0,y:0,visible:false};
+let hoverChoice=null,hoverStart=0,grabbed=null,dropStart=0,dropTarget=null,locked=false;
+const HOLD_MS=600;
+
+function resizeCanvas(){canvas.width=innerWidth*devicePixelRatio;canvas.height=innerHeight*devicePixelRatio;ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0)}
+addEventListener('resize',resizeCanvas);resizeCanvas();
+
+function shuffle(a){return [...a].sort(()=>Math.random()-.5)}
+function clearTarget(){document.querySelectorAll('.target').forEach(el=>el.classList.remove('target'))}
+function playTone(ok){
+ try{const AC=window.AudioContext||window.webkitAudioContext;const ac=new AC();const osc=ac.createOscillator(),gain=ac.createGain();osc.connect(gain);gain.connect(ac.destination);osc.type='sine';osc.frequency.value=ok?740:190;gain.gain.setValueAtTime(.12,ac.currentTime);gain.gain.exponentialRampToValueAtTime(.001,ac.currentTime+.22);osc.start();osc.stop(ac.currentTime+.23);osc.onended=()=>ac.close()}catch(e){}
+}
+function updateStats(){scoreEl.textContent=score;comboEl.textContent=combo;progressEl.textContent=`${Math.min(questionIndex+1,9)}/9`}
+function loadQuestion(){
+ if(questionIndex>=questions.length){finishGame();return}
+ const q=questions[questionIndex];clearTarget();document.getElementById(q.target).classList.add('target');
+ targetTag.textContent='TARGET LOCK';questionTitle.textContent='INTUTUNAI BOOGIAN DITI';questionHint.textContent='';
+ placedEl.textContent='';nextBtn.classList.add('hidden');locked=false;grabbed=null;hoverChoice=null;dropTarget=null;dragLabel.style.display='none';
+ choicesEl.innerHTML='';
+ const options=shuffle([q.word,...q.wrong]);
+ options.forEach(word=>{
+  const b=document.createElement('button');b.className='choice';b.type='button';b.textContent=word;b.dataset.word=word;
+  // Prevent mouse/touch selection: the game is controlled by tracked index finger.
+  b.addEventListener('click',e=>e.preventDefault());choicesEl.appendChild(b);
+ });
+ updateStats();
+}
+function pointIn(el,x,y){const r=el.getBoundingClientRect();return x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom}
+function getTargetElement(){return document.getElementById(questions[questionIndex].target)}
+function onCorrect(){
+ const q=questions[questionIndex];locked=true;score+=100+combo*10;combo++;correctCount++;updateStats();playTone(true);
+ const target=getTargetElement();target.classList.remove('target');
+ const label=document.createElement('div');label.className='placed-word';label.textContent=q.word;label.style.cssText='position:absolute;z-index:5;background:#bbf7d0;color:#14532d;border:2px solid #16a34a;border-radius:9px;padding:5px 8px;font-size:12px;font-weight:900;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none';
+ // Place the word at the center of the actual target SVG element.
+ const box=target.getBoundingClientRect(),stage=document.getElementById('stage').getBoundingClientRect();
+ label.style.left=(box.left+box.width/2-stage.left)+'px';label.style.top=(box.top+box.height/2-stage.top)+'px';label.style.transform='translate(-50%,-50%)';
+ document.getElementById('stage').appendChild(label);
+ placedEl.textContent='✓ CORRECT! Word placed.';questionTitle.textContent='TOPOT!';questionHint.textContent='Asampin ko no';
+ targetTag.textContent='TARGET COMPLETE';dragLabel.style.display='none';
+ // Brief celebratory particles
+ burst(box.left+box.width/2,box.top+box.height/2);
+ nextBtn.classList.add('hidden');nextBtn.textContent=questionIndex===8?'VIEW RESULTS':'NEXT QUESTION';
+ setTimeout(()=>{if(locked&&active){document.querySelectorAll('#stage .placed-word').forEach(e=>e.remove());questionIndex++;loadQuestion()}},5000);
+}
+function onWrong(){
+ wrongCount++;combo=0;updateStats();playTone(false);document.querySelectorAll('.choice').forEach(el=>el.classList.remove('grabbed','hover'));placedEl.textContent='Okon ko' ilo. Umbalai kawagu';dragLabel.style.display='none';grabbed=null;dropStart=0;dropTarget=null;
+}
+function burst(x,y){
+ const dots=Array.from({length:22},()=>({x,y,vx:(Math.random()-.5)*7,vy:(Math.random()-.8)*7,life:1}));
+ function draw(){ctx.save();dots.forEach(d=>{d.x+=d.vx;d.y+=d.vy;d.vy+=.12;d.life-=.035;ctx.globalAlpha=Math.max(0,d.life);ctx.fillStyle='#fde047';ctx.beginPath();ctx.arc(d.x,d.y,3,0,Math.PI*2);ctx.fill()});ctx.restore();if(dots.some(d=>d.life>0))requestAnimationFrame(draw)}
+ draw();
+}
+function finishGame(){
+ active=false;clearTarget();choicesEl.innerHTML='';questionTitle.textContent='GAME COMPLETED!';questionHint.textContent=`Final score: ${score}`;placedEl.textContent=`Correct: ${correctCount}  |  Incorrect: ${wrongCount}`;
+ overlay.classList.remove('hidden');message.innerHTML=`<b>GAME COMPLETED!</b><br>Jumlah markah: ${score}<br>Jawapan betul: ${correctCount}<br>Jawapan salah: ${wrongCount}`;
+ overlayStart.textContent='PLAY AGAIN';startBtn.textContent='PLAY AGAIN';nextBtn.classList.add('hidden');
+}
+function resetGame(){questionIndex=0;score=0;combo=0;correctCount=0;wrongCount=0;document.querySelectorAll('#stage .placed-word').forEach(e=>e.remove());document.querySelectorAll('#stage > div:not(#targetTag)').forEach(e=>{if(e.classList.contains('placed-word'))e.remove()});loadQuestion()}
+function processInteraction(now){
+ if(!pointer.visible||!active||locked)return;
+ const choices=[...document.querySelectorAll('.choice')];
+ if(!grabbed){
+  const found=choices.find(el=>pointIn(el,pointer.x,pointer.y));
+  choices.forEach(el=>el.classList.toggle('hover',el===found));
+  if(found!==hoverChoice){hoverChoice=found;hoverStart=now}
+  if(found&&now-hoverStart>=HOLD_MS){
+   grabbed=found.dataset.word;found.classList.add('grabbed');dragLabel.textContent=grabbed;dragLabel.style.display='block';hoverChoice=null;dropStart=0;dropTarget=null;
+  }
+ }else{
+  choices.forEach(el=>el.classList.remove('hover'));
+  dragLabel.style.left=pointer.x+'px';dragLabel.style.top=pointer.y+'px';
+  const target=getTargetElement();const r=target.getBoundingClientRect();
+  const hit=pointer.x>=r.left-18&&pointer.x<=r.right+18&&pointer.y>=r.top-18&&pointer.y<=r.bottom+18;
+  if(hit){
+   if(!dropTarget){dropTarget=target;dropStart=now}
+   if(now-dropStart>=HOLD_MS){
+    if(grabbed===questions[questionIndex].word)onCorrect();else onWrong();
+   }
+  }else{dropTarget=null;dropStart=0}
+ }
+}
+function renderPointer(){
+ ctx.clearRect(0,0,innerWidth,innerHeight);
+ if(pointer.visible){
+  ctx.save();ctx.shadowBlur=18;ctx.shadowColor='#67e8f9';ctx.strokeStyle='#67e8f9';ctx.lineWidth=3;
+  ctx.beginPath();ctx.arc(pointer.x,pointer.y,grabbed?13:9,0,Math.PI*2);ctx.stroke();
+  ctx.fillStyle='#fef08a';ctx.beginPath();ctx.arc(pointer.x,pointer.y,3,0,Math.PI*2);ctx.fill();
+  if(grabbed){ctx.strokeStyle='#facc15';ctx.beginPath();ctx.arc(pointer.x,pointer.y,19,0,Math.PI*2);ctx.stroke()}
+  ctx.restore();
+ }
+}
+async function initCamera(){
+ message.textContent='Mongukab Kamera';overlayStart.disabled=true;startBtn.disabled=true;
+ try{
+  if(!navigator.mediaDevices?.getUserMedia)throw new Error('Browser tidak menyokong getUserMedia. Gunakan HTTPS atau localhost.');
+  stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:1280},height:{ideal:720}},audio:false});
+  video.srcObject=stream;await video.play();
+  statusEl.textContent='Kamera aktif. Memuatkan hand tracking...';
+  const vision=await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm');
+  handLandmarker=await HandLandmarker.createFromOptions(vision,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',delegate:'GPU'},runningMode:'VIDEO',numHands:1});
+  active=true;overlay.classList.add('hidden');startBtn.textContent='CAMERA ACTIVE';startBtn.disabled=true;statusEl.textContent='Momoguno tunturu tutuduk';
+  resetGame();loop();
+ }catch(err){
+  console.error(err);message.textContent='Gagal mengaktifkan kamera/hand tracking: '+(err.message||err);
+  statusEl.textContent='Ralat kamera atau hand tracking. Semak kebenaran kamera dan sambungan internet.';
+  if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}
+  overlayStart.disabled=false;startBtn.disabled=false;
+ }
+}
+function loop(){
+ if(!active)return;
+ if(video.readyState>=2&&video.currentTime!==lastVideoTime){
+  lastVideoTime=video.currentTime;
+  try{
+   const result=handLandmarker.detectForVideo(video,performance.now());
+   if(result.landmarks&&result.landmarks.length){
+    const tip=result.landmarks[0][8];
+    // Video is mirrored with CSS; mirror x coordinate for matching screen position.
+    pointer.x=(1-tip.x)*innerWidth;pointer.y=tip.y*innerHeight;pointer.visible=true;
+   }else{pointer.visible=false;hoverChoice=null}
+  }catch(err){console.error('Hand tracking:',err);statusEl.textContent='Hand tracking terganggu. Cuba pastikan tangan berada dalam pandangan kamera.'}
+ }
+ processInteraction(performance.now());renderPointer();
+ if(grabbed&&pointer.visible){dragLabel.style.left=pointer.x+'px';dragLabel.style.top=pointer.y+'px'}
+ rafId=requestAnimationFrame(loop);
+}
+overlayStart.addEventListener('click',()=>{if(overlayStart.textContent==='PLAY AGAIN'){overlay.classList.add('hidden');resetGame();active=true;loop()}else initCamera()});
+startBtn.addEventListener('click',()=>{if(!stream)initCamera()});
+nextBtn.addEventListener('click',()=>{document.querySelectorAll('#stage .placed-word').forEach(e=>e.remove());questionIndex++;loadQuestion()});
+</script>
+</body>
+</html>
